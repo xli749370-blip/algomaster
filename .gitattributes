@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+# 生成的数据文件是单行大 JSON，关掉 diff 避免 git 卡死
+data/*.js -diff linguist-generated=true
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.apk binary

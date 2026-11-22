@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e13">
+<meta name="description" content="AlgoMaster · 大学生算法刷题与蓝桥杯 / ACM 竞赛学习工具：C++ Python Java C 全流程课程、系统算法专题、2.7 万道题库、左右分栏在线做题">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AlgoMaster">
+<link rel="manifest" href="manifest.json?sharecode=TMJWP6H5MQ">
+<link rel="icon" href="icons/favicon-32.png?sharecode=TMJWP6H5MQ" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png?sharecode=TMJWP6H5MQ">
+<title>AlgoMaster · 算法刷题与竞赛</title>
+<script>
+  (function () {
+    try {
+      var t = localStorage.getItem("algomaster-theme");
+      if (!t) t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) {}
+  })();
+</script>
+<link rel="stylesheet" href="css/style.css">
+<script>
+  /* 分享链接靠 ?sharecode 授权：把当前 query 同步给 manifest / 图标，
+     否则安装时浏览器以无凭据方式取 manifest 会拿到 403，导致「装不上」 */
+  (function () {
+    try {
+      var q = location.search;
+      if (!q) return;
+      var m = document.querySelector('link[rel="manifest"]');
+      if (m) m.setAttribute("href", "manifest.json" + q);      var icons = document.querySelectorAll('link[rel="icon"], link[rel="apple-touch-icon"]');
+      for (var i = 0; i < icons.length; i++) {
+        icons[i].setAttribute("href", icons[i].getAttribute("href").split("?")[0] + q);
+      }
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+
+<!-- ================= 顶部栏 ================= -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <button class="icon-btn back-btn" id="backBtn" title="返回" onclick="App.goBack()"></button>
+    <div class="brand" onclick="App.goTab('home')">
+      <span class="brand-mark" id="brandMark"></span>
+      <span class="brand-name">AlgoMaster</span>
+      <span class="brand-sub">算法刷题</span>
+    </div>
+
+    <nav class="main-nav" id="mainNav"></nav>
+
+    <div class="topbar-right">
+      <div class="streak-chip" id="streakChip" onclick="App.nav('checkin')"></div>
+      <button class="icon-btn" id="installIcon" title="安装到桌面" onclick="App.openInstallGuide()"></button>
+      <button class="icon-btn" id="themeBtn" title="切换深色 / 浅色" onclick="App.toggleTheme()"></button>
+      <button class="icon-btn" id="msgBtn" title="消息与公告" onclick="App.openAnnouncements()"></button>
+      <div class="tb-avatar" id="tbAvatar" onclick="App.goTab('profile')" title="个人中心"></div>
+    </div>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<!-- 移动端底部导航挂载点：由 App.placeNav() 在窄屏时把 #mainNav 移进来，
+     让导航成为固定布局的一部分，而不是浮在页面上的 fixed 层 -->
+<div id="navSlot" class="nav-slot"></div>
+
+<!-- ================= 弹层 ================= -->
+<div id="modal" class="modal hidden" onclick="App.closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2 id="modalTitle"></h2>
+      <button class="modal-close" onclick="App.closeModal()" id="modalCloseBtn"></button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- ================= 安装引导 ================= -->
+<div id="installBar" class="install-bar hidden">
+  <div class="install-ico" id="installBarIco"></div>
+  <div class="install-txt">
+    <b id="installTitle">安装到手机桌面</b>
+    <span id="installHint">像 App 一样全屏使用，支持离线</span>
+  </div>
+  <div class="install-actions">
+    <button id="installBtn" class="install-btn">立即安装</button>
+    <button class="install-close" id="installClose" aria-label="关闭">✕</button>
+  </div>
+</div>
+
+<script src="data/course-index.js"></script>
+<script src="js/data-algorithms.js"></script>
+<script src="js/data-problems.js"></script>
+<script src="data/stats.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+/* ============ PWA 安装引导 ============
+   浏览器（尤其微信/QQ 内置浏览器）不会自动弹安装框，这里做三件事：
+   1. 常驻安装入口（顶栏图标）—— 任何时候都能点，按机型给出精确步骤
+   2. 可安装时（Chrome/Edge）直接调起系统安装弹窗
+   3. 首次访问自动出现底部引导条，关闭后 3 天内不再打扰
+   ======================================== */
+(function () {
+  /* 装在 APK 里（资源已全量内嵌，走 appassets 本地来源）→ 不需要 SW，也不再劝安装 */
+  var inShellEarly = false;
+  try { inShellEarly = !!(window.AndroidShell && window.AndroidShell.isShell && window.AndroidShell.isShell()); } catch (e) {}
+
+  /* Service Worker 是「能否安装」的硬性条件之一。
+     本站子资源必须带 ?sharecode，注册时不带就会拿到 403 → SW 装不上 → 系统安装框永不出现。
+     所以注册地址直接继承当前页面的查询串。 */
+  if ("serviceWorker" in navigator && !inShellEarly) {
+    (function () {
+      var q = location.search || "";
+      var tryReg = function (url) {
+        return navigator.serviceWorker.register(url, { scope: "./", updateViaCache: "none" });
+      };
+      var fire = function () {
+        tryReg("sw.js" + q)
+          .then(function (reg) { if (reg && reg.update) reg.update().catch(function () {}); })
+          .catch(function () {
+            // 极少数网关环境下带 query 反而被拒，退化为普通地址再试一次
+            tryReg("sw.js").catch(function () {});
+          });
+      };
+      if (document.readyState === "complete") fire();
+      else window.addEventListener("load", fire);
+    })();
+  }
+
+  var UA = navigator.userAgent || "";
+  var isWeChat = /MicroMessenger/i.test(UA);
+  var isQQ = /\bQQ\//i.test(UA) && !/MQQBrowser/i.test(UA);   // QQ 内置浏览器；QQ 浏览器是独立的，能装
+  var isQQBrowser = /MQQBrowser|QQBrowser/i.test(UA);
+  var isWeibo = /Weibo/i.test(UA);
+  var isIOS = /iphone|ipad|ipod/i.test(UA);
+  var isAndroid = /android/i.test(UA);
+  var inApp = isWeChat || isQQ || isWeibo;   // 内置浏览器：无法调起安装
+  var standalone = window.matchMedia("(display-mode: standalone)").matches ||
+                   window.navigator.standalone === true;
+  // 装在 APK 壳里：已经是 App 了，不再劝安装（壳通过 addJavascriptInterface 暴露 isShell）
+  var inShell = false;
+  try { inShell = !!(window.AndroidShell && window.AndroidShell.isShell && window.AndroidShell.isShell()); } catch (e) {}
+
+  /* 国产手机浏览器（vivo / UC / 夸克 / 华为 / 小米 / OPPO / 百度 / 360…）
+     内核基于 Chromium，beforeinstallprompt 也会触发，页面同样可安装；
+     但它们对 prompt() 的支持参差不齐，很多会忽略网页主动调起的安装框。
+     这类浏览器一律「不拦截事件」，把机会留给浏览器自己的安装提示。 */
+  var isCnBrowser = /VivoBrowser|UCBrowser|UCWEB|Quark|HuaweiBrowser|MiuiBrowser|HeyTapBrowser|OppoBrowser|baidubrowser|BIDUBrowser|QihooBrowser|360SE/i.test(UA);
+  // 只有确认 prompt() 一定生效的浏览器才由我们接管（拦截 + 主动调起）
+  var trustPrompt = !inApp && !isCnBrowser && /\bChrome\/|\bEdg\/|\bSamsungBrowser\//i.test(UA);
+  var nativeReady = false;   // 浏览器自身已具备安装条件（我们没拦截）
+
+  var deferredPrompt = null;
+  var HIDE_KEY = "algomaster-install-hide";
+  var bar = document.getElementById("installBar");
+  var btn = document.getElementById("installBtn");
+  var title = document.getElementById("installTitle");
+  var hint = document.getElementById("installHint");
+  var ico = document.getElementById("installBarIco");
+  var closeBtn = document.getElementById("installClose");
+
+  // 内置浏览器里把安装条挪到顶栏下方，紧邻「···」菜单，操作路径最短
+  if (bar && inApp) bar.classList.add("at-top");
+
+  // 安装条是浮层，出现时给内容区留出底部空间，避免压住最后一屏内容
+  function markBarSpace(on) {
+    try { document.body.classList.toggle("has-install-bar", !!on); } catch (e) {}
+  }
+
+  function hideBar() { if (bar) bar.classList.add("hidden"); markBarSpace(false); }
+
+  function hintText() {
+    if (isWeChat) return "右上角 ··· → 在浏览器打开 → 添加到桌面";
+    if (isQQ) return "右上角 ··· → 在浏览器打开 → 添加到桌面";
+    if (isWeibo) return "右上角 ··· → 在浏览器打开 → 添加到桌面";
+    if (isIOS) return "Safari 底部「分享」→「添加到主屏幕」";
+    if (isAndroid) return "点右侧按钮，或浏览器菜单安装";
+    return "地址栏右侧有安装图标，或从菜单安装";
+  }
+
+  function syncBar() {
+    if (!bar) return;
+    var direct = !!deferredPrompt;
+    if (title) title.textContent = direct ? "一步安装到桌面" : "安装到手机桌面";
+    if (hint) {
+      hint.textContent = direct
+        ? "全屏启动，断网也能用"
+        : nativeReady
+          ? "浏览器已支持安装，点菜单里的「安装应用」"
+          : hintText();
+    }
+    if (btn) {
+      btn.textContent = direct
+        ? "立即安装"
+        : nativeReady
+          ? "安装方法"
+          : (inApp ? "复制链接" : "安装方法");
+    }
+    if (ico) {
+      ico.innerHTML = direct
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 3.5v11"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 19.5h15"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M12 15.5V3.5"/><path d="M8 7.5 12 3.5l4 4"/><path d="M5 13v7.5h14V13"/></svg>';
+    }
+  }
+
+  function barAllowed() {
+    if (!bar || standalone || inShell) return false;
+    try {
+      var last = parseInt(localStorage.getItem(HIDE_KEY) || "0", 10);
+      if (last && Date.now() - last < 12 * 3600 * 1000) return false;   // 半天内不再打扰
+    } catch (e) {}
+    return true;
+  }
+
+  // 决定「现在要不要显示安装条」：避免和首页的安装入口条重复，
+  // 阅读类页面（做题 / 章节）也不打扰
+  function syncVisibility() {
+    if (!barAllowed()) { hideBar(); return; }
+    var page = (window.App && App.state && App.state.page) || "home";
+    var onHome = page === "home";
+    var hasStrip = !!document.querySelector(".install-strip");
+    // 安装提示只留在首页：内页（阅读 / 列表 / 做题）一律不打扰
+    if (page !== "home") { hideBar(); return; }
+    if (onHome && hasStrip) { hideBar(); return; }
+    syncBar();
+    bar.classList.remove("hidden");
+    markBarSpace(true);
+  }
+
+  function showBar() { syncVisibility(); }
+
+  // 暴露给 App 用（安装引导弹层里的「立即安装」按钮）
+  window.AMInstall = {
+    canPrompt: function () { return !!deferredPrompt; },
+    nativeReady: function () { return nativeReady; },
+    prompt: function () {
+      if (!deferredPrompt) {
+        if (window.App && App.openInstallGuide) App.openInstallGuide();
+        return false;
+      }
+      var p = deferredPrompt;
+      deferredPrompt = null;
+      try { p.prompt(); } catch (e) {}
+      p.userChoice.then(function () { hideBar(); }).catch(function () {});
+      return true;
+    },
+    syncVisibility: syncVisibility,
+    showBar: function () { showBar(true); }
+  };
+
+  // 打开链接后直接弹系统安装框。
+  // 浏览器硬性要求：prompt() 必须在用户手势的同步上下文里调用，setTimeout 会丢失手势，
+  // 所以这里挂在首次触摸/点击上，事件回调里同步调用。
+  var AUTO_KEY = "am-auto-prompt";
+  var autoTried = false;
+  function autoPromptOnce() {
+    if (!deferredPrompt || standalone || inApp || inShell) return;
+    if (!barAllowed()) return;
+    var p = deferredPrompt;
+    deferredPrompt = null;
+    try {
+      var r = p.prompt();
+      if (r && r.catch) r.catch(function () { deferredPrompt = p; });
+    } catch (e) {
+      deferredPrompt = p;
+      return;
+    }
+    autoTried = true;
+    try { sessionStorage.setItem(AUTO_KEY, String(Date.now())); } catch (e) {}
+    p.userChoice.then(function (res) {
+      if (res && res.outcome === "accepted") {
+        try { localStorage.setItem(HIDE_KEY, String(Date.now())); } catch (e) {}
+        hideBar();
+        if (window.App && App.toast) App.toast("正在安装，稍后从桌面图标启动");
+      }
+    }).catch(function () {});
+  }
+
+  // 首次交互即尝试安装 —— 这是浏览器唯一放行的时机
+  function armGesturePrompt() {
+    var evs = ["pointerup", "touchend", "click", "keydown"];
+    var once = function () {
+      evs.forEach(function (t) { window.removeEventListener(t, once, true); });
+      // 安装引导弹层打开时，交给弹层里的按钮主导，避免系统框和弹层互相覆盖
+      var m = document.getElementById("modal");
+      if (m && !m.classList.contains("hidden")) return;
+      autoPromptOnce();          // 必须同步，不能包 setTimeout
+    };
+    evs.forEach(function (t) { window.addEventListener(t, once, { capture: true, passive: true }); });
+  }
+
+  // 首屏绘制后自动弹出「安装到桌面」选项（就是以前那个打开链接就弹的效果）
+  var autoGuideDone = false;
+  function autoGuide() {
+    if (autoGuideDone || inShell) return;
+    autoGuideDone = true;
+    if (!window.App || !App.state || App.state.page !== "home") return;
+    var m = document.getElementById("modal");
+    if (m && !m.classList.contains("hidden")) return;
+    App.autoInstallPrompt();
+  }
+  window.addEventListener("load", function () {
+    setTimeout(autoGuide, 900);
+  });
+
+  window.addEventListener("beforeinstallprompt", function (e) {
+    if (inShell) return;
+    // 微信 / QQ / 微博的内置浏览器里，安装流程会被宿主拦截（即便事件触发也装不上），
+    // 因此统一走「复制链接 → 用浏览器打开」，比给一个点了没反应的安装按钮更可靠
+    if (inApp) { syncBar(); return; }
+
+    // 国产浏览器：不调用 preventDefault —— 一旦拦截，浏览器自带的「安装 / 添加到桌面」
+    // 提示就永远不出现，而它们的 prompt() 又常常被忽略，结果是两边都没有入口。
+    // 放行之后由浏览器自己弹提示，用户点一下就装好。
+    if (!trustPrompt) {
+      nativeReady = true;
+      syncBar();
+      showBar();
+      return;
+    }
+
+    e.preventDefault();
+    deferredPrompt = e;
+    syncBar();
+    showBar();
+    armGesturePrompt();
+  });
+
+  window.addEventListener("appinstalled", function () {
+    deferredPrompt = null;
+    try { localStorage.setItem(HIDE_KEY, String(Date.now())); } catch (e) {}
+    hideBar();
+    if (window.App && App.toast) App.toast("已安装到桌面，下次从图标启动");
+  });
+
+  if (btn) {
+    btn.addEventListener("click", function () {
+      if (deferredPrompt) { window.AMInstall.prompt(); return; }
+      if (inApp) {
+        // 内置浏览器：一步复制链接，用户只需粘贴到浏览器
+        if (window.App && App.copyLink) App.copyLink(true);
+        return;
+      }
+      if (window.App && App.openInstallGuide) App.openInstallGuide();
+    });
+  }
+  if (closeBtn) {
+    closeBtn.addEventListener("click", function () {
+      hideBar();
+      try { localStorage.setItem(HIDE_KEY, String(Date.now())); } catch (e) {}
+    });
+  }
+
+  // 首屏稳定后自动出现引导条（不依赖浏览器事件，微信/iOS 也能看到）
+  window.addEventListener("load", function () {
+    syncBar();
+    setTimeout(showBar, 1200);
+  });
+
+  // 兜底：若 load 事件早已触发（脚本在末尾，一般不会），也要尝试
+  if (document.readyState === "complete") {
+    syncBar();
+    setTimeout(showBar, 1200);
+  }
+})();
+</script>
+</body>
+</html>

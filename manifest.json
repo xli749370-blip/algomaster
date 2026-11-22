@@ -1,0 +1,21 @@
+{
+  "id": "/index.html?sharecode=TMJWP6H5MQ",
+  "name": "AlgoMaster",
+  "short_name": "AlgoMaster",
+  "description": "C++/Python/Java/C 全流程课程 + 算法专题 + 实战题库 + 每日打卡",
+  "start_url": "./index.html?sharecode=TMJWP6H5MQ",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png?sharecode=TMJWP6H5MQ", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png?sharecode=TMJWP6H5MQ", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png?sharecode=TMJWP6H5MQ", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

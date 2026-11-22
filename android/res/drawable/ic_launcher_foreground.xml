@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自适应图标前景：白色闪电，控制在 66dp 安全区内，任何形状遮罩下都不被裁切 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M60.8,21.5 L37.3,61.3 L50.7,61.3 L45.1,86.5 L69.7,46.7 L55.7,46.7 Z" />
+</vector>

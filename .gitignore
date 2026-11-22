@@ -1,0 +1,30 @@
+# ============ 依赖 ============
+node_modules/
+
+# ============ 生成产物（体积大，用 tools/gen*.js 重新生成）============
+# gen.js 产出 problems-*.js / problems-index.js / stats.js / types-index.js
+# gen-solutions.js 产出 sol-*.js
+/data/problems-*.js
+/data/sol-*.js
+
+# ============ 构建产物与签名材料 ============
+/build/
+/download/
+*.apk
+*.aab
+*.idsig
+*.keystore
+*.jks
+
+# ============ 测试截图（仓库里保留 docs/screenshots 精选图）============
+/tools/shots/
+
+# ============ 本地工具 / 编辑器 ============
+.workbuddy/
+.wbapp_*.genie
+.tmp-*
+.DS_Store
+Thumbs.db
+
+# WorkBuddy 任务产物
+/overview.md
