@@ -1,6 +1,7 @@
 # AlgoMaster · 算法刷题
 
 [![Release](https://img.shields.io/github/v/release/xli749370-blip/algomaster?label=release&color=2ea44f)](https://github.com/xli749370-blip/algomaster/releases/latest)
+[![CI](https://github.com/xli749370-blip/algomaster/actions/workflows/ci.yml/badge.svg)](https://github.com/xli749370-blip/algomaster/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/xli749370-blip/algomaster?color=blue)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/xli749370-blip/algomaster?color=yellow)](https://github.com/xli749370-blip/algomaster/stargazers)
 [![APK](https://img.shields.io/badge/APK-36.4MB-3ddc84)](https://github.com/xli749370-blip/algomaster/releases/latest)
@@ -74,7 +75,7 @@ python3 -m http.server 8080
 │   └── data-algorithms.js# 24 个算法专题正文（生成）
 ├── data/                 # 数据分片（懒加载）
 │   ├── problems-index.js # 全量索引 [id, title, diff, type, shard]
-│   ├── problems-NNN.js   # 题库分片 ×1747（生成，已 gitignore）
+│   ├── problems-NNN.js   # 题库分片 ×1746（生成，已 gitignore）
 │   ├── sol-NNN.js        # 题解分片 ×1746（生成，已 gitignore）
 │   ├── course-*.js       # 4 门语言课程
 │   ├── interview-*.js    # 面试题库
@@ -88,21 +89,26 @@ python3 -m http.server 8080
 │   ├── algo-kb-*.js      # 24 个专题知识库
 │   ├── figs.js figmap.js # SVG 图元库与挂载表
 │   ├── gen.js gen-solutions.js gen-course.js gen-algo.js
+│   ├── fix-outfmt.js     # 题面「输出格式」病句重写（gen.js 之后必跑）
 │   ├── build-apk.sh gen-all.sh
-│   └── smoke.js e2e.js accept.js layout-check.js …
-└── docs/screenshots/
+│   └── smoke.js check-structure.js e2e.js accept.js layout-check.js …
+├── .github/workflows/ci.yml  # 每次 push 自动生成 + 冒烟 + 结构守卫
+└── docs/
 ```
 
 ## 数据生成流水线
 
 | 脚本 | 产出 | 体积 |
 | --- | --- | --- |
-| `tools/gen.js` | `data/problems-NNN.js`、`problems-index.js`、`stats.js`、`types-index.js`、`interview-*.js`、`manual-*.js` | 94 MB |
-| `tools/gen-solutions.js` | `data/sol-NNN.js`（每道题一份题解） | 62 MB |
+| `tools/gen.js --count 27933` | `data/problems-NNN.js`、`problems-index.js`、`stats.js`、`types-index.js`、`interview-*.js`、`manual-*.js` | 94 MB |
+| `tools/fix-outfmt.js` | 原地重写每题「输出格式」为通顺句式（幂等，可重复跑） | — |
+| `tools/gen-solutions.js` | `data/sol-NNN.js`（每道题一份题解） | 56 MB |
 | `tools/gen-course.js` | `data/course-*.js` + `course-index.js`（4 语言 × 20 章 × 4 节） | 0.8 MB |
 | `tools/gen-algo.js` | `js/data-algorithms.js`（24 个专题） | 0.2 MB |
 
-一次全跑：`bash tools/gen-all.sh`（需要 Node.js ≥ 18，几分钟）。
+一次全跑：`bash tools/gen-all.sh`（Node.js ≥ 18，约 30 秒，产出 3,520 个文件 / 158 MB）。
+
+> **题数由 `--count` 决定，不要只给体积参数。** `gen.js` 不带参数时默认按 52 MB 铺满，只能生成 16,464 题；`gen-all.sh` 固定传 `--count 27933`，与 README / Release 标注一致。想改题数用 `PROBLEMS=50000 bash tools/gen-all.sh`。
 
 题面样例由每种题型的真实 solver 反算生成，保证「样例输入 → 样例输出」自洽；`data/` 下的文件都是**生成产物**，不要手改。
 
@@ -127,7 +133,7 @@ bash tools/build-apk.sh /tmp/a.apk   # 指定路径
 
 ## 测试
 
-仓库带了 8 套脚本，纯 Node + 一个本地 Chrome（部分需要）：
+仓库带了 9 套脚本，纯 Node + 一个本地 Chrome（部分需要）：
 
 | 脚本 | 检查内容 |
 | --- | --- |
@@ -138,9 +144,16 @@ bash tools/build-apk.sh /tmp/a.apk   # 指定路径
 | `node tools/check-course.js` | 课程完整性：80 章 / 320 节 / 每节结构 |
 | `node tools/check-solution.js` | 题解覆盖率与静态体积 |
 | `node tools/check-types.js` | 题型 solver 自洽性（抽样 36,000 组） |
+| `node tools/check-structure.js` | 结构守卫：题数 27,933 / 分片 1,746 / 课程 80 章 320 节 / 专题 24 / 面试 576 条 / 无病句 |
 | `node tools/online-check.js` | 线上部署巡检 |
 
-`accept.js` / `e2e.js` 会自己拉起 `chrome --headless` 并用 CDP 驱动，需要本机装了 Chrome 或 Edge。
+`accept.js` / `e2e.js` / `layout-check.js` / `check-course.js` / `check-solution.js` 会自己拉起 `chrome --headless` 并用 CDP 驱动，需要本机装了 Chrome。
+
+### 持续集成
+
+`.github/workflows/ci.yml` 在每次 push / PR 时跑：**生成全量内容 → 冒烟（82 项）→ 题型模板自检（36,000 组）→ 结构守卫**，全流程约 40 秒，不需要浏览器。
+
+浏览器类测试（`e2e` / `layout-check` / `accept` / `check-course`）依赖本机 Chrome 与真实像素，不同 CI 环境容易假红，因此没有放进流水线，请在本机跑。
 
 ## 部署
 

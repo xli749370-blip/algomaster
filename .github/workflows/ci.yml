@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: 生成 + 冒烟 + 结构守卫
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # data/ 产物不入库（158MB），CI 里现场生成，约 30 秒
+      - name: 生成全部内容（题库 / 题解 / 课程 / 专题）
+        run: bash tools/gen-all.sh
+
+      # vm + 手写 DOM mock，不启浏览器，约 1 秒；抓白屏、状态丢失、返回栈错乱
+      - name: 冒烟测试
+        run: node tools/smoke.js
+
+      # 120 个题型模板 × 300 组随机数据，约 1 秒；抓 solve 与 outputText 不一致
+      - name: 题型模板自检
+        run: node tools/check-types.js
+
+      # 纯 Node 结构守卫；抓题库缩水、课程缺章、病句回流、专题缺图
+      - name: 内容结构守卫
+        run: node tools/check-structure.js
+
+      - name: 汇总
+        if: always()
+        run: echo "冒烟 + 模板 + 结构三项均通过才算绿；浏览器类测试（e2e / layout / accept）需本机 Chrome，不在 CI 跑。"

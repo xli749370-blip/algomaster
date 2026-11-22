@@ -1,5 +1,5 @@
 // 内容生成驱动：题库（数千题）+ API 手册 + 面试题库
-// 用法：node tools/gen.js [目标MB]
+// 用法：node tools/gen.js [目标MB] [--count 题数]
 const fs = require("fs");
 const path = require("path");
 const { TYPES_A } = require("./types-a");
@@ -14,7 +14,13 @@ const TYPES = [...TYPES_A, ...TYPES_B, ...TYPES_C, ...TYPES_D, ...TYPES_E, ...TY
 const ROOT = path.join(__dirname, "..");
 const DATA = path.join(ROOT, "data");
 
-const TARGET_MB = Number(process.argv[2] || 52);
+// 题数以 --count 为准（精确复现线上规模 27933 题）；未指定时按体积铺满目标 MB
+const ARGS = process.argv.slice(2);
+let TARGET_MB = 52, TARGET_COUNT = 0;
+for (let i = 0; i < ARGS.length; i++) {
+  if (ARGS[i] === "--count") TARGET_COUNT = Number(ARGS[++i]) || 0;
+  else if (/^\d+(\.\d+)?$/.test(ARGS[i])) TARGET_MB = Number(ARGS[i]);
+}
 const TARGET = TARGET_MB * 1024 * 1024;
 
 function rng(seed) {
@@ -334,13 +340,13 @@ function expandInterview() {
 }
 
 // ============ 3. 题库生成 ============
-function buildProblems(targetBytes) {
+function buildProblems(targetBytes, targetCount) {
   const shards = [];
   const index = [];
   let cur = [], curBytes = 0, total = 0, seq = 0, round = 0;
   const r = rng(20261119);
 
-  while (total < targetBytes && seq < 70000) {
+  while ((targetCount > 0 ? seq < targetCount : total < targetBytes) && seq < 70000) {
     const type = TYPES[round % TYPES.length];
     round++;
     let p;
@@ -431,7 +437,7 @@ function buildProblems(targetBytes) {
 
   // 题库：只用本轮写入字节计算预算（避免旧分片虚增体积）
   const jobBytes = Math.max(TARGET - sideBytes, 0);
-  const res = buildProblems(jobBytes);
+  const res = buildProblems(jobBytes, TARGET_COUNT);
   res.shards.forEach((sh, i) => {
     write(path.join(DATA, `problems-${String(i).padStart(3, "0")}.js`),
       `window.PROBLEM_SHARDS = window.PROBLEM_SHARDS || {};\nwindow.PROBLEM_SHARDS[${i}] = ${JSON.stringify(sh)};\n`);
