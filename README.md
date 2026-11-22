@@ -33,7 +33,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/<your-name>/algomaster.git
+git clone https://github.com/xli749370-blip/algomaster.git
 cd algomaster
 
 # 生成题库分片与题解（仓库里只放源码，产物 158MB 不进版本库）
