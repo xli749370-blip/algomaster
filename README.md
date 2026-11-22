@@ -1,8 +1,20 @@
 # AlgoMaster · 算法刷题
 
+[![Release](https://img.shields.io/github/v/release/xli749370-blip/algomaster?label=release&color=2ea44f)](https://github.com/xli749370-blip/algomaster/releases/latest)
+[![License](https://img.shields.io/github/license/xli749370-blip/algomaster?color=blue)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/xli749370-blip/algomaster?color=yellow)](https://github.com/xli749370-blip/algomaster/stargazers)
+[![APK](https://img.shields.io/badge/APK-36.4MB-3ddc84)](https://github.com/xli749370-blip/algomaster/releases/latest)
+
 一个**零依赖、纯静态**的算法刷题应用：题库 + 题解 + 多语言课程 + 算法专题 + 面试题库，既能当网页用（PWA 可安装），也能打成**离线可用的安卓 APK**。
 
 > 没有框架、没有 bundler、没有后端。所有内容由 Node 脚本生成，前端是原生 JS + 纯 CSS 变量主题。
+
+## 立即体验
+
+| 方式 | 下载 | 说明 |
+| --- | --- | --- |
+| 网页版 | [algomaster.app.workbuddy.host](https://algomaster.app.workbuddy.host/?sharecode=TMJWP6H5MQ) | 浏览器直接打开，可「添加到主屏幕」当 PWA 用 |
+| 安卓离线版 | [下载 APK (36.4 MB)](https://github.com/xli749370-blip/algomaster/releases/download/v2.0.0/algomaster-2.0.0.apk) | 全量内容内嵌，装好断网可用；minSdk 21 |
 
 ![首页](docs/screenshots/01-home-dark.png)
 
